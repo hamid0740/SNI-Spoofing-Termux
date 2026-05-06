@@ -1,33 +1,30 @@
+import importlib.util
 import sys
 from abc import ABC, abstractmethod
-
-from pydivert import WinDivert, Packet
-
-
-# from pydivert.consts import *
+from typing import Any
 
 
 class TcpInjector(ABC):
+    """Base class for TCP packet injectors.
+
+    The original project uses WinDivert through pydivert. WinDivert is a
+    Windows kernel driver, so pydivert cannot work in Termux/Android where DLLs
+    and the WinDivert driver are unavailable. This class keeps pydivert loading
+    lazy so the application can still start in non-Windows fallback modes.
+    """
+
     def __init__(self, w_filter: str):
-        # self.interface_ipv4 = interface_ipv4
-        # self.interface_ipv6 = interface_ipv6
-        # ip_filter = ip4_filter = ip6_filter = ""
-        # if self.interface_ipv4:
-        #     ip4_filter = "(ip.SrcAddr == " + self.interface_ipv4 + " or ip.DstAddr == " + self.interface_ipv4 + ")"
-        #     ip_filter = ip4_filter
-        # if self.interface_ipv6:
-        #     ip6_filter = "(ipv6.SrcAddr == " + self.interface_ipv6 + " or ipv6.DstAddr == " + self.interface_ipv6 + ")"
-        #     ip_filter = ip6_filter
-        # if self.interface_ipv4 and self.interface_ipv6:
-        #     ip_filter = "(" + ip4_filter + " or " + ip6_filter + ")"
-        #
-        # self.filter = "tcp"
-        # if ip_filter:
-        #     self.filter += " and " + ip_filter
-        self.w: WinDivert = WinDivert(w_filter)
+        if importlib.util.find_spec("pydivert") is None:
+            raise RuntimeError(
+                "pydivert/WinDivert is not installed. The pydivert injector is "
+                "Windows-only; use INJECTOR_BACKEND=none on Termux/Android."
+            )
+
+        pydivert = importlib.import_module("pydivert")
+        self.w = pydivert.WinDivert(w_filter)
 
     @abstractmethod
-    def inject(self, packet: Packet):
+    def inject(self, packet: Any):
         sys.exit("Not implemented")
 
     def run(self):

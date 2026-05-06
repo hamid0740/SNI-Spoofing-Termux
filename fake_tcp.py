@@ -4,7 +4,7 @@ import sys
 import threading
 import time
 
-from pydivert import Packet
+from typing import Any
 
 from monitor_connection import MonitorConnection
 from injecter import TcpInjector
@@ -30,7 +30,7 @@ class FakeTcpInjector(TcpInjector):
         super().__init__(w_filter)
         self.connections = connections
 
-    def fake_send_thread(self, packet: Packet, connection: FakeInjectiveConnection):
+    def fake_send_thread(self, packet: Any, connection: FakeInjectiveConnection):
         time.sleep(0.001)
         with connection.thread_lock:
             if not connection.monitor:
@@ -54,7 +54,7 @@ class FakeTcpInjector(TcpInjector):
             else:
                 sys.exit("not implemented method!")
 
-    def on_unexpected_packet(self, packet: Packet, connection: FakeInjectiveConnection, info_m: str):
+    def on_unexpected_packet(self, packet: Any, connection: FakeInjectiveConnection, info_m: str):
         print(info_m, packet)
         connection.sock.close()
         connection.peer_sock.close()
@@ -63,7 +63,7 @@ class FakeTcpInjector(TcpInjector):
         connection.running_loop.call_soon_threadsafe(connection.t2a_event.set, )
         self.w.send(packet, False)
 
-    def on_inbound_packet(self, packet: Packet, connection: FakeInjectiveConnection):
+    def on_inbound_packet(self, packet: Any, connection: FakeInjectiveConnection):
         if connection.syn_seq == -1:
             self.on_unexpected_packet(packet, connection, "unexpected inbound packet, no syn sent!")
             return
@@ -106,7 +106,7 @@ class FakeTcpInjector(TcpInjector):
         self.on_unexpected_packet(packet, connection, "unexpected inbound packet")
         return
 
-    def on_outbound_packet(self, packet: Packet, connection: FakeInjectiveConnection):
+    def on_outbound_packet(self, packet: Any, connection: FakeInjectiveConnection):
         if connection.sch_fake_sent:
             self.on_unexpected_packet(packet, connection, "unexpected outbound packet, recv packet after fake sent!")
             return
@@ -148,7 +148,7 @@ class FakeTcpInjector(TcpInjector):
         self.on_unexpected_packet(packet, connection, "unexpected outbound packet")
         return
 
-    def inject(self, packet: Packet):
+    def inject(self, packet: Any):
         if packet.is_inbound:
             c_id = (packet.ip.dst_addr, packet.tcp.dst_port, packet.ip.src_addr, packet.tcp.src_port)
             try:
